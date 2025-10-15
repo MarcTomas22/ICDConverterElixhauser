@@ -8,10 +8,12 @@ Aplicación web profesional para convertir códigos médicos ICD10 a ICD9 con cl
 - **Clasificación ELIXHAUSER CMR v2025.1**: Sistema oficial con 39 categorías y 4,542 códigos ICD-10 categorizados
 - **Búsqueda Bidireccional**: ICD10 → ICD9 e ICD9 → ICD10 (búsqueda inversa)
 - **Filtros Avanzados**: Filtrado por categoría ELIXHAUSER con 39 categorías oficiales
+- **Categorías Clicables**: Click en cualquier badge de categoría para ver todos los resultados de esa categoría
 - **Historial de Búsquedas**: PostgreSQL con persistencia, permite repetir búsquedas anteriores
 - **Exportación Profesional**: Descarga CSV y PDF con metadata completa
 - **Búsqueda en Tiempo Real**: Resultados instantáneos mientras se escribe
 - **Interfaz Profesional**: Diseño médico limpio con modo oscuro/claro
+- **Disclaimer Legal**: Aviso de responsabilidad médica visible en footer
 - **Responsive**: Optimizado para desktop, tablet y móvil
 
 ## Stack Tecnológico
@@ -150,9 +152,11 @@ El sistema usa el archivo oficial CMR-Reference-File-v2025-1.xlsx:
 - ✅ MVP Completado: Búsqueda ICD10→ICD9, clasificación ELIXHAUSER, UI profesional
 - ✅ Búsqueda Inversa: ICD9→ICD10 implementada con tabs de modo
 - ✅ Filtros por Categoría: 39 categorías ELIXHAUSER oficiales CMR v2025.1
+- ✅ Categorías Clicables: Click en badge para filtrar por categoría completa
 - ✅ Sistema CMR: Matching exacto con normalización de códigos (4,542 códigos categorizados)
 - ✅ Historial de Búsquedas: Base de datos PostgreSQL con persistencia completa
 - ✅ Exportación CSV/PDF: Descarga de resultados con metadata profesional
+- ✅ Disclaimer Legal: Aviso de responsabilidad médica prominente
 - 🔄 Futuro: Descripciones detalladas de códigos médicos
 
 ## Notas de Desarrollo
