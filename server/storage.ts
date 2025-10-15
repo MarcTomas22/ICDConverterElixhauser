@@ -1,6 +1,8 @@
-import { CodeConversion, SearchResult } from "@shared/schema";
+import { CodeConversion, SearchResult, SearchHistory, InsertSearchHistory, searchHistory } from "@shared/schema";
 import { loadConversions } from "./data-loader";
 import { findCMRCategories, getAllCMRCategoryNames, getCMRCategoryCode } from "./cmr-elixhauser";
+import { db } from "./db";
+import { desc, eq } from "drizzle-orm";
 
 function normalizeCode(code: string): string {
   return code.toUpperCase().trim().replace(/\./g, '');
@@ -11,6 +13,9 @@ export interface IStorage {
   searchCodesInverse(query: string, category?: string): Promise<SearchResult[]>;
   getCategories(): string[];
   initialize(): Promise<void>;
+  saveSearchHistory(entry: InsertSearchHistory): Promise<SearchHistory>;
+  getSearchHistory(limit?: number): Promise<SearchHistory[]>;
+  deleteSearchHistory(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -141,6 +146,23 @@ export class MemStorage implements IStorage {
       
       return a.icd10.localeCompare(b.icd10);
     });
+  }
+
+  async saveSearchHistory(entry: InsertSearchHistory): Promise<SearchHistory> {
+    const [result] = await db.insert(searchHistory).values(entry).returning();
+    return result;
+  }
+
+  async getSearchHistory(limit: number = 50): Promise<SearchHistory[]> {
+    return await db
+      .select()
+      .from(searchHistory)
+      .orderBy(desc(searchHistory.createdAt))
+      .limit(limit);
+  }
+
+  async deleteSearchHistory(id: number): Promise<void> {
+    await db.delete(searchHistory).where(eq(searchHistory.id, id));
   }
 }
 
