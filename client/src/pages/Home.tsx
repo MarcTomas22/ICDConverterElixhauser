@@ -8,18 +8,23 @@ import { LoadingState } from "@/components/LoadingState";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { useDebounce } from "@/hooks/useDebounce";
-import { Activity } from "lucide-react";
+import { Activity, ArrowRightLeft } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+type SearchMode = "normal" | "inverse";
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchMode, setSearchMode] = useState<SearchMode>("normal");
   const [hasSearched, setHasSearched] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const categoryParam = selectedCategory && selectedCategory !== "all" ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+  const modeParam = searchMode === "inverse" ? "&mode=inverse" : "";
   
   const { data: results = [], isLoading } = useQuery<SearchResult[]>({
-    queryKey: [`/api/search?q=${debouncedSearchTerm}${categoryParam}`],
+    queryKey: [`/api/search?q=${debouncedSearchTerm}${categoryParam}${modeParam}`],
     enabled: debouncedSearchTerm.length >= 2,
   });
 
@@ -33,6 +38,12 @@ export default function Home() {
   };
 
   const handleClear = () => {
+    setSearchTerm("");
+    setHasSearched(false);
+  };
+
+  const handleModeChange = (value: string) => {
+    setSearchMode(value as SearchMode);
     setSearchTerm("");
     setHasSearched(false);
   };
@@ -72,10 +83,28 @@ export default function Home() {
                 con clasificación automática de comorbilidades ELIXHAUSER
               </p>
             </div>
+            
+            <Tabs value={searchMode} onValueChange={handleModeChange} className="w-auto">
+              <TabsList data-testid="tabs-search-mode">
+                <TabsTrigger value="normal" data-testid="tab-normal-search" className="gap-2">
+                  ICD10 → ICD9
+                </TabsTrigger>
+                <TabsTrigger value="inverse" data-testid="tab-inverse-search" className="gap-2">
+                  <ArrowRightLeft className="h-4 w-4" />
+                  ICD9 → ICD10
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             <SearchBar
               value={searchTerm}
               onChange={handleSearchChange}
               onClear={handleClear}
+              placeholder={
+                searchMode === "inverse" 
+                  ? "Buscar código ICD9 (ej: 428.0, 250.00, 332.0)..." 
+                  : "Buscar código ICD10 (ej: I50.0, E10.9, G20.x)..."
+              }
             />
             <CategoryFilter
               value={selectedCategory}

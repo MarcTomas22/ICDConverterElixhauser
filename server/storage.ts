@@ -4,6 +4,7 @@ import { findElixhauserCategory, elixhauserCategories } from "./elixhauser-data"
 
 export interface IStorage {
   searchCodes(query: string, category?: string): Promise<SearchResult[]>;
+  searchCodesInverse(query: string, category?: string): Promise<SearchResult[]>;
   getCategories(): string[];
   initialize(): Promise<void>;
 }
@@ -65,6 +66,63 @@ export class MemStorage implements IStorage {
       
       if (aStartsWith && !bStartsWith) return -1;
       if (!aStartsWith && bStartsWith) return 1;
+      
+      return a.icd10.localeCompare(b.icd10);
+    });
+  }
+
+  async searchCodesInverse(query: string, category?: string): Promise<SearchResult[]> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    const queryUpper = query.toUpperCase().trim();
+    const results: SearchResult[] = [];
+    const seenCodes = new Set<string>();
+
+    for (const [icd10, conversions] of Array.from(this.conversionsMap.entries())) {
+      const icd9Codes = conversions.map((c: CodeConversion) => c.icd9);
+      const hasMatchingIcd9 = icd9Codes.some(icd9 => {
+        const normalizedIcd9 = icd9.toUpperCase().trim();
+        return normalizedIcd9.includes(queryUpper);
+      });
+      
+      if (hasMatchingIcd9) {
+        if (!seenCodes.has(icd10)) {
+          seenCodes.add(icd10);
+          
+          const uniqueIcd9Codes = Array.from(new Set(icd9Codes));
+          const elixhauserCategory = findElixhauserCategory(icd10);
+          
+          if (category && category !== "all") {
+            if (elixhauserCategory !== category) {
+              continue;
+            }
+          }
+          
+          results.push({
+            icd10,
+            icd9Codes: uniqueIcd9Codes,
+            elixhauserCategory
+          });
+        }
+      }
+
+      if (results.length >= 50) break;
+    }
+
+    return results.sort((a, b) => {
+      const aHasStartsWith = a.icd9Codes.some(code => {
+        const normalizedCode = code.toUpperCase().trim();
+        return normalizedCode.startsWith(queryUpper);
+      });
+      const bHasStartsWith = b.icd9Codes.some(code => {
+        const normalizedCode = code.toUpperCase().trim();
+        return normalizedCode.startsWith(queryUpper);
+      });
+      
+      if (aHasStartsWith && !bHasStartsWith) return -1;
+      if (!aHasStartsWith && bHasStartsWith) return 1;
       
       return a.icd10.localeCompare(b.icd10);
     });
