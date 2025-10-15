@@ -8,6 +8,8 @@ Aplicación web profesional para convertir códigos médicos ICD10 a ICD9 con cl
 - **Clasificación ELIXHAUSER CMR v2025.1**: Sistema oficial con 39 categorías y 4,542 códigos ICD-10 categorizados
 - **Búsqueda Bidireccional**: ICD10 → ICD9 e ICD9 → ICD10 (búsqueda inversa)
 - **Filtros Avanzados**: Filtrado por categoría ELIXHAUSER con 39 categorías oficiales
+- **Historial de Búsquedas**: PostgreSQL con persistencia, permite repetir búsquedas anteriores
+- **Exportación Profesional**: Descarga CSV y PDF con metadata completa
 - **Búsqueda en Tiempo Real**: Resultados instantáneos mientras se escribe
 - **Interfaz Profesional**: Diseño médico limpio con modo oscuro/claro
 - **Responsive**: Optimizado para desktop, tablet y móvil
@@ -15,8 +17,10 @@ Aplicación web profesional para convertir códigos médicos ICD10 a ICD9 con cl
 ## Stack Tecnológico
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: Express.js + Node.js
+- **Base de Datos**: PostgreSQL (Neon) + Drizzle ORM
 - **UI**: Tailwind CSS + shadcn/ui
-- **Datos**: In-memory storage (MemStorage)
+- **Datos**: In-memory storage (conversiones) + PostgreSQL (historial)
+- **Exportación**: PapaParse (CSV) + jsPDF + jspdf-autotable (PDF)
 - **Fuentes**: Inter (interfaz) + JetBrains Mono (códigos médicos)
 
 ## Arquitectura de Datos
@@ -84,18 +88,28 @@ Aplicación web profesional para convertir códigos médicos ICD10 a ICD9 con cl
 │   │   │   ├── ResultsTable.tsx           # Tabla de resultados
 │   │   │   ├── EmptyState.tsx             # Estado vacío
 │   │   │   ├── LoadingState.tsx           # Estado de carga
-│   │   │   └── ThemeToggle.tsx            # Toggle modo oscuro/claro
+│   │   │   ├── ThemeToggle.tsx            # Toggle modo oscuro/claro
+│   │   │   ├── CategoryFilter.tsx         # Filtro de categorías
+│   │   │   ├── HistoryPanel.tsx           # Panel de historial
+│   │   │   └── ExportButtons.tsx          # Botones exportación CSV/PDF
 │   │   ├── pages/
 │   │   │   └── Home.tsx                   # Página principal
 │   │   └── index.css                      # Estilos con design tokens
 ├── server/
 │   ├── routes.ts                          # API endpoints
-│   └── storage.ts                         # In-memory storage
+│   ├── storage.ts                         # Storage híbrido (memoria + DB)
+│   ├── db.ts                              # Conexión PostgreSQL
+│   ├── cmr-elixhauser.ts                  # Sistema CMR v2025.1
+│   └── cmr-category-names.ts              # Nombres categorías ELIXHAUSER
 └── shared/
-    └── schema.ts                          # Esquemas TypeScript compartidos
+    └── schema.ts                          # Esquemas compartidos + Drizzle
 
 ## API Endpoints
-- `GET /api/search?q={code}` - Buscar código ICD10 y obtener conversión + clasificación
+- `GET /api/search?q={code}&mode={mode}&category={category}` - Buscar códigos (normal/inverso) con filtros
+- `GET /api/categories` - Obtener lista de 39 categorías ELIXHAUSER
+- `POST /api/history` - Guardar búsqueda en historial
+- `GET /api/history?limit={n}` - Obtener historial de búsquedas (últimas 50 por defecto)
+- `DELETE /api/history/:id` - Eliminar entrada del historial
 
 ## Sistema de Diseño
 
@@ -137,7 +151,9 @@ El sistema usa el archivo oficial CMR-Reference-File-v2025-1.xlsx:
 - ✅ Búsqueda Inversa: ICD9→ICD10 implementada con tabs de modo
 - ✅ Filtros por Categoría: 39 categorías ELIXHAUSER oficiales CMR v2025.1
 - ✅ Sistema CMR: Matching exacto con normalización de códigos (4,542 códigos categorizados)
-- 🔄 En Progreso: Historial, exportación CSV/PDF, descripciones detalladas
+- ✅ Historial de Búsquedas: Base de datos PostgreSQL con persistencia completa
+- ✅ Exportación CSV/PDF: Descarga de resultados con metadata profesional
+- 🔄 Futuro: Descripciones detalladas de códigos médicos
 
 ## Notas de Desarrollo
 - Usar in-memory storage (javascript_mem_db blueprint)
