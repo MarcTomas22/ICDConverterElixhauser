@@ -6,16 +6,20 @@ import { ResultsTable } from "@/components/ResultsTable";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingState } from "@/components/LoadingState";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CategoryFilter } from "@/components/CategoryFilter";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Activity } from "lucide-react";
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [hasSearched, setHasSearched] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
+  const categoryParam = selectedCategory && selectedCategory !== "all" ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+  
   const { data: results = [], isLoading } = useQuery<SearchResult[]>({
-    queryKey: [`/api/search?q=${debouncedSearchTerm}`],
+    queryKey: [`/api/search?q=${debouncedSearchTerm}${categoryParam}`],
     enabled: debouncedSearchTerm.length >= 2,
   });
 
@@ -73,13 +77,25 @@ export default function Home() {
               onChange={handleSearchChange}
               onClear={handleClear}
             />
+            <CategoryFilter
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+            />
           </div>
 
           <div className="max-w-7xl mx-auto">
             {showLoading ? (
               <LoadingState />
             ) : results.length > 0 ? (
-              <ResultsTable results={results} />
+              <>
+                <div className="mb-4 text-sm text-muted-foreground">
+                  {results.length} {results.length === 1 ? "resultado" : "resultados"}
+                  {selectedCategory && selectedCategory !== "all" && (
+                    <span> en categoría: <span className="font-medium text-foreground">{selectedCategory}</span></span>
+                  )}
+                </div>
+                <ResultsTable results={results} />
+              </>
             ) : (
               <EmptyState hasSearched={hasSearched} />
             )}

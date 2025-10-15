@@ -1,9 +1,10 @@
 import { CodeConversion, SearchResult } from "@shared/schema";
 import { loadConversions } from "./data-loader";
-import { findElixhauserCategory } from "./elixhauser-data";
+import { findElixhauserCategory, elixhauserCategories } from "./elixhauser-data";
 
 export interface IStorage {
-  searchCodes(query: string): Promise<SearchResult[]>;
+  searchCodes(query: string, category?: string): Promise<SearchResult[]>;
+  getCategories(): string[];
   initialize(): Promise<void>;
 }
 
@@ -20,7 +21,11 @@ export class MemStorage implements IStorage {
     this.isInitialized = true;
   }
 
-  async searchCodes(query: string): Promise<SearchResult[]> {
+  getCategories(): string[] {
+    return elixhauserCategories.map(cat => cat.category).sort();
+  }
+
+  async searchCodes(query: string, category?: string): Promise<SearchResult[]> {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -36,6 +41,12 @@ export class MemStorage implements IStorage {
           
           const icd9Codes = Array.from(new Set(conversions.map((c: CodeConversion) => c.icd9)));
           const elixhauserCategory = findElixhauserCategory(icd10);
+          
+          if (category && category !== "all") {
+            if (elixhauserCategory !== category) {
+              continue;
+            }
+          }
           
           results.push({
             icd10,
