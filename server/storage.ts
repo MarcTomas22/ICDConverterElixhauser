@@ -29,12 +29,12 @@ export class MemStorage implements IStorage {
     const results: SearchResult[] = [];
     const seenCodes = new Set<string>();
 
-    for (const [icd10, conversions] of this.conversionsMap.entries()) {
+    for (const [icd10, conversions] of Array.from(this.conversionsMap.entries())) {
       if (icd10.toUpperCase().includes(queryUpper)) {
         if (!seenCodes.has(icd10)) {
           seenCodes.add(icd10);
           
-          const icd9Codes = [...new Set(conversions.map(c => c.icd9))];
+          const icd9Codes = Array.from(new Set(conversions.map((c: CodeConversion) => c.icd9)));
           const elixhauserCategory = findElixhauserCategory(icd10);
           
           results.push({
