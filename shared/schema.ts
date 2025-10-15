@@ -15,6 +15,7 @@ export const searchResultSchema = z.object({
   icd10: z.string(),
   icd9Codes: z.array(z.string()),
   elixhauserCategory: z.string().nullable(),
+  elixhauserCategories: z.array(z.string()).optional(),
 });
 
 export type CodeConversion = z.infer<typeof codeConversionSchema>;

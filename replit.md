@@ -4,8 +4,10 @@
 Aplicación web profesional para convertir códigos médicos ICD10 a ICD9 con clasificación automática de comorbilidades ELIXHAUSER. Diseñada para profesionales médicos que necesitan conversiones rápidas y precisas.
 
 ## Funcionalidades Principales
-- **Conversión ICD10 → ICD9**: Base de datos con 261,000+ conversiones
-- **Clasificación ELIXHAUSER**: Identificación automática de categorías de comorbilidad
+- **Conversión ICD10 → ICD9**: Base de datos con 261,000+ conversiones (150,854 códigos ICD10 únicos)
+- **Clasificación ELIXHAUSER CMR v2025.1**: Sistema oficial con 39 categorías y 4,542 códigos ICD-10 categorizados
+- **Búsqueda Bidireccional**: ICD10 → ICD9 e ICD9 → ICD10 (búsqueda inversa)
+- **Filtros Avanzados**: Filtrado por categoría ELIXHAUSER con 39 categorías oficiales
 - **Búsqueda en Tiempo Real**: Resultados instantáneos mientras se escribe
 - **Interfaz Profesional**: Diseño médico limpio con modo oscuro/claro
 - **Responsive**: Optimizado para desktop, tablet y móvil
@@ -31,36 +33,46 @@ Aplicación web profesional para convertir códigos médicos ICD10 a ICD9 con cl
 { icd10: string, icd9Codes: string[], elixhauserCategory: string | null }
 ```
 
-### Categorías ELIXHAUSER
-- Congestive heart failure (Insuficiencia cardíaca congestiva)
-- Cardiac arrhythmias (Arritmias cardíacas)
-- Valvular disease (Enfermedad valvular)
-- Pulmonary circulation disorders (Trastornos circulación pulmonar)
-- Peripheral vascular disorders (Trastornos vasculares periféricos)
-- Hypertension (Hipertensión)
-- Paralysis (Parálisis)
-- Other neurological disorders (Otros trastornos neurológicos)
-- Chronic pulmonary disease (Enfermedad pulmonar crónica)
-- Diabetes (con/sin complicaciones)
-- Hypothyroidism (Hipotiroidismo)
-- Liver disease (Enfermedad hepática)
-- Peptic ulcer disease (Úlcera péptica)
-- AIDS/HIV
-- Lymphoma (Linfoma)
-- Metastatic cancer (Cáncer metastásico)
-- Solid tumor without metastasis (Tumor sólido sin metástasis)
-- Rheumatoid arthritis/collagen vascular diseases
-- Coagulopathy (Coagulopatía)
-- Obesity (Obesidad)
-- Weight loss (Pérdida de peso)
-- Fluid and electrolyte disorders (Trastornos electrolíticos)
-- Blood loss anemia (Anemia por pérdida de sangre)
-- Deficiency anemia (Anemia por deficiencia)
-- Alcohol abuse (Abuso de alcohol)
-- Drug abuse (Abuso de drogas)
-- Psychoses (Psicosis)
-- Depression (Depresión)
-- Renal failure (Insuficiencia renal)
+### Categorías ELIXHAUSER CMR v2025.1 (39 oficiales)
+- AIDS/HIV (8 códigos)
+- Alcohol abuse (57 códigos)
+- Deficiency anemia (26 códigos)
+- Autoimmune conditions (598 códigos)
+- Blood loss anemia (1 código)
+- Leukemia (100 códigos)
+- Lymphoma (447 códigos)
+- Metastatic cancer (54 códigos)
+- Cancer in situ (110 códigos)
+- Solid tumor without metastasis (598 códigos)
+- Cerebrovascular disease POA (184 códigos)
+- Cerebrovascular disease sequelae (127 códigos)
+- Coagulopathy (57 códigos)
+- Dementia (93 códigos)
+- Depression (19 códigos)
+- Diabetes with complications (445 códigos)
+- Diabetes without complications (65 códigos)
+- Drug abuse (259 códigos)
+- Heart failure (37 códigos)
+- Hypertension with complications (61 códigos)
+- Hypertension without complications (10 códigos)
+- Liver disease mild (59 códigos)
+- Liver disease severe (19 códigos)
+- Chronic pulmonary disease (68 códigos)
+- Neurological movement disorders (68 códigos)
+- Other neurological disorders (69 códigos)
+- Seizures and epilepsy (61 códigos)
+- Obesity (36 códigos)
+- Paralysis (180 códigos)
+- Peripheral vascular disease (356 códigos)
+- Psychoses (145 códigos)
+- Pulmonary circulation disorders (18 códigos)
+- Renal failure moderate (6 códigos)
+- Renal failure severe (15 códigos)
+- Hypothyroidism (18 códigos)
+- Other thyroid disorders (27 códigos)
+- Peptic ulcer disease (36 códigos)
+- Valvular disease (109 códigos)
+- Weight loss (18 códigos)
 
 ## Estructura del Proyecto
 ```
@@ -107,20 +119,25 @@ Aplicación web profesional para convertir códigos médicos ICD10 a ICD9 con cl
 ## Datos de Entrada
 - **CSV de Conversiones**: `attached_assets/ICD_9_10_d_v1.1_1760516226717.csv` (261K líneas)
   - Formato: `ICD10|ICD9|Flags`
-- **PDF ELIXHAUSER**: `attached_assets/Copia de ICD10 to ICD9 (2)_1760516217232.pdf`
-  - Categorías con patrones de códigos (rangos, comodines)
+  - 150,854 códigos ICD10 únicos procesados
+- **Excel CMR Oficial**: `attached_assets/CMR-Reference-File-v2025-1_1760533108985.xlsx`
+  - ELIXHAUSER Comorbidity Software Refined for ICD-10-CM v2025.1
+  - Hoja DX_to_Comorb_Mapping: 4,543 filas con matriz binaria de categorías
+  - 39 categorías oficiales con códigos exactos
 
-## Lógica de Matching ELIXHAUSER
-El sistema debe identificar categorías usando:
-- Códigos exactos: `I09.9`
-- Rangos: `I44.1 - I44.3`
-- Comodines: `I50.x`, `J40.x - J47.x`
-- Múltiples códigos separados por coma
+## Lógica de Matching ELIXHAUSER CMR
+El sistema usa el archivo oficial CMR-Reference-File-v2025-1.xlsx:
+- **Matching Exacto**: Comparación directa con 4,542 códigos ICD-10 oficiales
+- **Normalización**: Códigos normalizados (sin puntos) para matching: E10.10 → E1010
+- **Multi-Categoría**: Un código puede pertenecer a múltiples categorías (se muestra la primera)
+- **39 Categorías Oficiales**: Sistema ELIXHAUSER Comorbidity Software Refined v2025.1
 
-## Estado Actual del Desarrollo
-- ✅ Fase 1: Schema & Frontend completado
-- 🔄 Fase 2: Backend en progreso
-- ⏳ Fase 3: Integración pendiente
+## Estado Actual del Desarrollo  
+- ✅ MVP Completado: Búsqueda ICD10→ICD9, clasificación ELIXHAUSER, UI profesional
+- ✅ Búsqueda Inversa: ICD9→ICD10 implementada con tabs de modo
+- ✅ Filtros por Categoría: 39 categorías ELIXHAUSER oficiales CMR v2025.1
+- ✅ Sistema CMR: Matching exacto con normalización de códigos (4,542 códigos categorizados)
+- 🔄 En Progreso: Historial, exportación CSV/PDF, descripciones detalladas
 
 ## Notas de Desarrollo
 - Usar in-memory storage (javascript_mem_db blueprint)

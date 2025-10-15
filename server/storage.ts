@@ -1,6 +1,10 @@
 import { CodeConversion, SearchResult } from "@shared/schema";
 import { loadConversions } from "./data-loader";
-import { findElixhauserCategory, elixhauserCategories } from "./elixhauser-data";
+import { findCMRCategories, getAllCMRCategoryNames, getCMRCategoryCode } from "./cmr-elixhauser";
+
+function normalizeCode(code: string): string {
+  return code.toUpperCase().trim().replace(/\./g, '');
+}
 
 export interface IStorage {
   searchCodes(query: string, category?: string): Promise<SearchResult[]>;
@@ -23,7 +27,7 @@ export class MemStorage implements IStorage {
   }
 
   getCategories(): string[] {
-    return elixhauserCategories.map(cat => cat.category).sort();
+    return getAllCMRCategoryNames();
   }
 
   async searchCodes(query: string, category?: string): Promise<SearchResult[]> {
@@ -32,19 +36,22 @@ export class MemStorage implements IStorage {
     }
 
     const queryUpper = query.toUpperCase().trim();
+    const normalizedQuery = normalizeCode(queryUpper);
     const results: SearchResult[] = [];
     const seenCodes = new Set<string>();
 
     for (const [icd10, conversions] of Array.from(this.conversionsMap.entries())) {
-      if (icd10.toUpperCase().includes(queryUpper)) {
+      const normalizedIcd10 = normalizeCode(icd10);
+      if (normalizedIcd10.includes(normalizedQuery)) {
         if (!seenCodes.has(icd10)) {
           seenCodes.add(icd10);
           
           const icd9Codes = Array.from(new Set(conversions.map((c: CodeConversion) => c.icd9)));
-          const elixhauserCategory = findElixhauserCategory(icd10);
+          const categories = findCMRCategories(icd10);
+          const elixhauserCategory = categories.length > 0 ? categories[0] : null;
           
           if (category && category !== "all") {
-            if (elixhauserCategory !== category) {
+            if (!categories.includes(category)) {
               continue;
             }
           }
@@ -52,7 +59,8 @@ export class MemStorage implements IStorage {
           results.push({
             icd10,
             icd9Codes,
-            elixhauserCategory
+            elixhauserCategory,
+            elixhauserCategories: categories.length > 0 ? categories : undefined
           });
         }
       }
@@ -61,8 +69,10 @@ export class MemStorage implements IStorage {
     }
 
     return results.sort((a, b) => {
-      const aStartsWith = a.icd10.toUpperCase().startsWith(queryUpper);
-      const bStartsWith = b.icd10.toUpperCase().startsWith(queryUpper);
+      const aNormalized = normalizeCode(a.icd10);
+      const bNormalized = normalizeCode(b.icd10);
+      const aStartsWith = aNormalized.startsWith(normalizedQuery);
+      const bStartsWith = bNormalized.startsWith(normalizedQuery);
       
       if (aStartsWith && !bStartsWith) return -1;
       if (!aStartsWith && bStartsWith) return 1;
@@ -83,8 +93,9 @@ export class MemStorage implements IStorage {
     for (const [icd10, conversions] of Array.from(this.conversionsMap.entries())) {
       const icd9Codes = conversions.map((c: CodeConversion) => c.icd9);
       const hasMatchingIcd9 = icd9Codes.some(icd9 => {
-        const normalizedIcd9 = icd9.toUpperCase().trim();
-        return normalizedIcd9.includes(queryUpper);
+        const normalizedIcd9 = normalizeCode(icd9);
+        const normalizedQuery = normalizeCode(queryUpper);
+        return normalizedIcd9.includes(normalizedQuery);
       });
       
       if (hasMatchingIcd9) {
@@ -92,10 +103,11 @@ export class MemStorage implements IStorage {
           seenCodes.add(icd10);
           
           const uniqueIcd9Codes = Array.from(new Set(icd9Codes));
-          const elixhauserCategory = findElixhauserCategory(icd10);
+          const categories = findCMRCategories(icd10);
+          const elixhauserCategory = categories.length > 0 ? categories[0] : null;
           
           if (category && category !== "all") {
-            if (elixhauserCategory !== category) {
+            if (!categories.includes(category)) {
               continue;
             }
           }
@@ -103,7 +115,8 @@ export class MemStorage implements IStorage {
           results.push({
             icd10,
             icd9Codes: uniqueIcd9Codes,
-            elixhauserCategory
+            elixhauserCategory,
+            elixhauserCategories: categories.length > 0 ? categories : undefined
           });
         }
       }
@@ -111,14 +124,16 @@ export class MemStorage implements IStorage {
       if (results.length >= 50) break;
     }
 
+    const normalizedQuery = normalizeCode(queryUpper);
+    
     return results.sort((a, b) => {
       const aHasStartsWith = a.icd9Codes.some(code => {
-        const normalizedCode = code.toUpperCase().trim();
-        return normalizedCode.startsWith(queryUpper);
+        const normalizedCode = normalizeCode(code);
+        return normalizedCode.startsWith(normalizedQuery);
       });
       const bHasStartsWith = b.icd9Codes.some(code => {
-        const normalizedCode = code.toUpperCase().trim();
-        return normalizedCode.startsWith(queryUpper);
+        const normalizedCode = normalizeCode(code);
+        return normalizedCode.startsWith(normalizedQuery);
       });
       
       if (aHasStartsWith && !bHasStartsWith) return -1;
