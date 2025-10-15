@@ -12,9 +12,10 @@ import { Card } from "@/components/ui/card";
 
 interface ResultsTableProps {
   results: SearchResult[];
+  onCategoryClick?: (category: string) => void;
 }
 
-export function ResultsTable({ results }: ResultsTableProps) {
+export function ResultsTable({ results, onCategoryClick }: ResultsTableProps) {
   if (results.length === 0) {
     return null;
   }
@@ -45,7 +46,10 @@ export function ResultsTable({ results }: ResultsTableProps) {
                     {result.icd9Codes.join(", ")}
                   </TableCell>
                   <TableCell>
-                    <ClassificationBadge category={result.elixhauserCategory} />
+                    <ClassificationBadge 
+                      category={result.elixhauserCategory}
+                      onClick={onCategoryClick}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -75,7 +79,10 @@ export function ResultsTable({ results }: ResultsTableProps) {
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Clasificación ELIXHAUSER</p>
-              <ClassificationBadge category={result.elixhauserCategory} />
+              <ClassificationBadge 
+                category={result.elixhauserCategory}
+                onClick={onCategoryClick}
+              />
             </div>
           </Card>
         ))}

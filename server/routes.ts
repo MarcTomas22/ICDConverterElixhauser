@@ -12,13 +12,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = req.query.category as string | undefined;
       const mode = req.query.mode as string | undefined;
       
-      if (!query || query.length < 1) {
+      if ((!query || query.length < 1) && !category) {
         return res.json([]);
       }
 
       const results = mode === "inverse" 
-        ? await storage.searchCodesInverse(query, category)
-        : await storage.searchCodes(query, category);
+        ? await storage.searchCodesInverse(query || "", category)
+        : await storage.searchCodes(query || "", category);
       
       res.json(results);
     } catch (error) {

@@ -10,7 +10,7 @@ import { CategoryFilter } from "@/components/CategoryFilter";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { ExportButtons } from "@/components/ExportButtons";
 import { useDebounce } from "@/hooks/useDebounce";
-import { Activity, ArrowRightLeft } from "lucide-react";
+import { Activity, ArrowRightLeft, AlertTriangle } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -28,7 +28,7 @@ export default function Home() {
   
   const { data: results = [], isLoading } = useQuery<SearchResult[]>({
     queryKey: [`/api/search?q=${debouncedSearchTerm}${categoryParam}${modeParam}`],
-    enabled: debouncedSearchTerm.length >= 2,
+    enabled: debouncedSearchTerm.length >= 2 || (selectedCategory !== "all" && debouncedSearchTerm.length === 0),
   });
 
   const saveHistoryMutation = useMutation({
@@ -74,6 +74,12 @@ export default function Home() {
     setSearchMode(searchType as SearchMode);
     setSearchTerm(query);
     setSelectedCategory(category || "all");
+    setHasSearched(true);
+  };
+
+  const handleCategoryClick = (category: string) => {
+    setSelectedCategory(category);
+    setSearchTerm("");
     setHasSearched(true);
   };
 
@@ -161,7 +167,10 @@ export default function Home() {
                       categoryFilter={selectedCategory}
                     />
                   </div>
-                  <ResultsTable results={results} />
+                  <ResultsTable 
+                    results={results}
+                    onCategoryClick={handleCategoryClick}
+                  />
                 </>
               ) : (
                 <EmptyState hasSearched={hasSearched} />
@@ -177,11 +186,26 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="border-t border-border mt-16">
-        <div className="container mx-auto px-4 py-6">
-          <p className="text-center text-sm text-muted-foreground">
-            Base de datos con {(261000).toLocaleString()} conversiones ICD10 → ICD9
-          </p>
+      <footer className="border-t border-border mt-16 bg-card/30">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-3xl mx-auto space-y-4">
+            <div className="bg-destructive/10 border border-destructive/30 rounded-md p-4" data-testid="disclaimer-section">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <h3 className="text-sm font-semibold text-destructive">Aviso Legal y Descargo de Responsabilidad</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Esta herramienta es solo para fines informativos y educativos. El creador de esta aplicación 
+                <strong> no es médico ni profesional de la salud</strong> y no se responsabiliza del uso que se le dé 
+                a esta aplicación. Los códigos de diagnóstico médico deben ser verificados y aplicados únicamente por 
+                profesionales de la salud autorizados. Consulte siempre con personal médico calificado para cualquier 
+                decisión relacionada con diagnósticos o tratamientos médicos.
+              </p>
+            </div>
+            <p className="text-center text-sm text-muted-foreground">
+              Base de datos con {(261000).toLocaleString()} conversiones ICD10 → ICD9 | Sistema ELIXHAUSER CMR v2025.1
+            </p>
+          </div>
         </div>
       </footer>
     </div>
