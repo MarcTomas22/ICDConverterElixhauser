@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { HistoryPanel } from "@/components/HistoryPanel";
+import { ExportButtons } from "@/components/ExportButtons";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Activity, ArrowRightLeft } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -146,11 +147,19 @@ export default function Home() {
                 <LoadingState />
               ) : results.length > 0 ? (
                 <>
-                  <div className="mb-4 text-sm text-muted-foreground">
-                    {results.length} {results.length === 1 ? "resultado" : "resultados"}
-                    {selectedCategory && selectedCategory !== "all" && (
-                      <span> en categoría: <span className="font-medium text-foreground">{selectedCategory}</span></span>
-                    )}
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      {results.length} {results.length === 1 ? "resultado" : "resultados"}
+                      {selectedCategory && selectedCategory !== "all" && (
+                        <span> en categoría: <span className="font-medium text-foreground">{selectedCategory}</span></span>
+                      )}
+                    </div>
+                    <ExportButtons
+                      results={results}
+                      searchQuery={debouncedSearchTerm}
+                      searchMode={searchMode}
+                      categoryFilter={selectedCategory}
+                    />
                   </div>
                   <ResultsTable results={results} />
                 </>
