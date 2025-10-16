@@ -126,12 +126,6 @@ export class MemStorage implements IStorage {
         continue;
       }
 
-      }
-
-      if (categoryFilter && !entry.categories.includes(categoryFilter)) {
-        continue;
-      }
-
       if (seenCodes.has(entry.icd10)) {
         continue;
       }
@@ -144,10 +138,6 @@ export class MemStorage implements IStorage {
         elixhauserCategory: entry.elixhauserCategory,
         elixhauserCategories: entry.categories.length > 0 ? entry.categories : undefined,
       });
-
-      if (results.length >= 50) {
-        break;
-      }
     }
 
     return results.sort((a, b) => this.sortByStartsWith(a.icd10, b.icd10, normalizedQuery));
@@ -190,10 +180,6 @@ export class MemStorage implements IStorage {
         elixhauserCategory: entry.elixhauserCategory,
         elixhauserCategories: entry.categories.length > 0 ? entry.categories : undefined,
       });
-
-      if (results.length >= 50) {
-        break;
-      }
     }
 
     return results.sort((a, b) => this.sortInverseByStartsWith(a.icd9Codes, b.icd9Codes, normalizedQuery, a.icd10, b.icd10));
