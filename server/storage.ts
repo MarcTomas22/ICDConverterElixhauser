@@ -126,6 +126,12 @@ export class MemStorage implements IStorage {
         continue;
       }
 
+      }
+
+      if (categoryFilter && !entry.categories.includes(categoryFilter)) {
+        continue;
+      }
+
       if (seenCodes.has(entry.icd10)) {
         continue;
       }
