@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryFunctionContext } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -24,12 +24,42 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+type StructuredQueryKey = [string, Record<string, unknown>?];
+
+function buildUrlFromQueryKey(queryKey: QueryFunctionContext["queryKey"]): string {
+  const [base, params] = queryKey as StructuredQueryKey;
+  if (!params || typeof params !== "object") {
+    return base;
+  }
+
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item != null) {
+          searchParams.append(key, String(item));
+        }
+      });
+    } else {
+      searchParams.append(key, String(value));
+    }
+  }
+
+  const queryString = searchParams.toString();
+  return queryString ? `${base}?${queryString}` : base;
+}
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+  async (context) => {
+    const url = buildUrlFromQueryKey(context.queryKey);
+    const res = await fetch(url, {
       credentials: "include",
     });
 
