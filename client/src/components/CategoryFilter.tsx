@@ -7,6 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Filter } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 interface CategoryFilterProps {
   value: string;
@@ -14,14 +16,27 @@ interface CategoryFilterProps {
 }
 
 export function CategoryFilter({ value, onChange }: CategoryFilterProps) {
-  const { data: categories = [] } = useQuery<string[]>({
+  const { toast } = useToast();
+  const { data: categories = [], isError, error } = useQuery<string[]>({
     queryKey: ["/api/categories"],
+    staleTime: 60_000,
   });
+
+  useEffect(() => {
+    if (isError && error) {
+      const message = error instanceof Error ? error.message : "No se pudieron cargar las categorías.";
+      toast({
+        title: "Error al cargar categorías",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  }, [isError, error, toast]);
 
   return (
     <div className="flex items-center gap-2">
       <Filter className="h-4 w-4 text-muted-foreground" />
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={onChange} disabled={isError}>
         <SelectTrigger className="w-[280px]" data-testid="select-category-filter">
           <SelectValue placeholder="Filtrar por categoría ELIXHAUSER" />
         </SelectTrigger>

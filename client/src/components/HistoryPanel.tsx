@@ -7,28 +7,45 @@ import { Clock, ArrowRightLeft, X, History } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
+import type { MouseEvent } from "react";
 
 interface HistoryPanelProps {
   onSelectHistory: (query: string, searchType: string, category?: string) => void;
 }
 
 export function HistoryPanel({ onSelectHistory }: HistoryPanelProps) {
-  const { data: history = [], isLoading } = useQuery<SearchHistory[]>({
+  const { toast } = useToast();
+  const { data: history = [], isLoading, isError, error, refetch, isFetching } = useQuery<SearchHistory[]>({
     queryKey: ['/api/history'],
+    staleTime: 60_000,
   });
 
-  const deleteMutation = useMutation({
+  const { mutate: deleteHistory } = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest('DELETE', `/api/history/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/history'] });
+      toast({
+        title: "Historial actualizado",
+        description: "La búsqueda se eliminó correctamente.",
+      });
+    },
+    onError: (mutationError) => {
+      const message = mutationError instanceof Error ? mutationError.message : 'No se pudo eliminar la búsqueda del historial.';
+      toast({
+        title: "Error al eliminar",
+        description: message,
+        variant: "destructive",
+      });
     },
   });
 
-  const handleDelete = (e: React.MouseEvent, id: number) => {
+  const handleDelete = (e: MouseEvent, id: number) => {
     e.stopPropagation();
-    deleteMutation.mutate(id);
+    deleteHistory(id);
   };
 
   if (isLoading) {
@@ -42,6 +59,32 @@ export function HistoryPanel({ onSelectHistory }: HistoryPanelProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">Cargando...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    const message = error instanceof Error ? error.message : "No se pudo cargar el historial.";
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Historial
+          </CardTitle>
+          <CardDescription>
+            Reintenta la operación para ver tus búsquedas recientes
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertTitle>Error al cargar el historial</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+          <Button onClick={() => refetch()} disabled={isFetching}>
+            Reintentar
+          </Button>
         </CardContent>
       </Card>
     );

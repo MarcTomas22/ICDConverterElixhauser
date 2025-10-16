@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { SearchResult } from "@shared/schema";
 import { SearchBar } from "@/components/SearchBar";
@@ -13,6 +13,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { Activity, ArrowRightLeft, AlertTriangle } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 type SearchMode = "normal" | "inverse";
 
@@ -22,33 +24,83 @@ export default function Home() {
   const [searchMode, setSearchMode] = useState<SearchMode>("normal");
   const [hasSearched, setHasSearched] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const lastSavedSearchRef = useRef<string | null>(null);
+  const { toast } = useToast();
 
-  const categoryParam = selectedCategory && selectedCategory !== "all" ? `&category=${encodeURIComponent(selectedCategory)}` : "";
-  const modeParam = searchMode === "inverse" ? "&mode=inverse" : "";
-  
-  const { data: results = [], isLoading } = useQuery<SearchResult[]>({
-    queryKey: [`/api/search?q=${debouncedSearchTerm}${categoryParam}${modeParam}`],
-    enabled: debouncedSearchTerm.length >= 2 || (selectedCategory !== "all" && debouncedSearchTerm.length === 0),
+  const hasCategoryFilter = selectedCategory !== "all";
+  const shouldSearch = debouncedSearchTerm.length >= 2 || (hasCategoryFilter && debouncedSearchTerm.length === 0);
+
+  const { data: results = [], isLoading, isFetching, isError, error, isFetched } = useQuery<SearchResult[]>({
+    queryKey: [
+      "/api/search",
+      {
+        q: debouncedSearchTerm,
+        category: hasCategoryFilter ? selectedCategory : undefined,
+        mode: searchMode === "inverse" ? "inverse" : undefined,
+      },
+    ],
+    enabled: shouldSearch,
+    staleTime: 60_000,
   });
 
-  const saveHistoryMutation = useMutation({
+  const { mutate: saveHistory } = useMutation({
     mutationFn: async (data: { searchQuery: string; searchType: string; categoryFilter?: string }) => {
       await apiRequest('POST', '/api/history', data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      lastSavedSearchRef.current = JSON.stringify(variables);
       queryClient.invalidateQueries({ queryKey: ['/api/history'] });
+    },
+    onError: (mutationError) => {
+      lastSavedSearchRef.current = null;
+      const message = mutationError instanceof Error ? mutationError.message : 'No se pudo guardar la búsqueda en el historial.';
+      toast({
+        title: "No se guardó la búsqueda",
+        description: message,
+        variant: "destructive",
+      });
     },
   });
 
   useEffect(() => {
     if (debouncedSearchTerm.length >= 2 && results.length > 0) {
-      saveHistoryMutation.mutate({
+      const payload = {
         searchQuery: debouncedSearchTerm,
         searchType: searchMode,
         categoryFilter: selectedCategory !== "all" ? selectedCategory : undefined,
+      };
+
+      const signature = JSON.stringify(payload);
+
+      if (lastSavedSearchRef.current === signature) {
+        return;
+      }
+
+      saveHistory(payload);
+    }
+  }, [debouncedSearchTerm, searchMode, selectedCategory, results.length, saveHistory]);
+
+  useEffect(() => {
+    if (!shouldSearch) {
+      setHasSearched(false);
+      return;
+    }
+
+    if (!isFetching && isFetched) {
+      setHasSearched(true);
+    }
+  }, [shouldSearch, isFetching, isFetched]);
+
+  useEffect(() => {
+    if (isError && error) {
+      const message = error instanceof Error ? error.message : 'No se pudo completar la búsqueda.';
+      toast({
+        title: "Error al buscar códigos",
+        description: message,
+        variant: "destructive",
       });
     }
-  }, [debouncedSearchTerm, searchMode, selectedCategory, results.length]);
+  }, [isError, error, toast]);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -80,11 +132,12 @@ export default function Home() {
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category);
     setSearchTerm("");
-    setHasSearched(true);
+    setHasSearched(false);
   };
 
   const isTyping = searchTerm !== debouncedSearchTerm && searchTerm.length >= 2;
   const showLoading = isLoading || isTyping;
+  const errorMessage = isError && error ? (error instanceof Error ? error.message : "Error desconocido") : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -149,7 +202,12 @@ export default function Home() {
             </div>
 
             <div className="max-w-7xl mx-auto">
-              {showLoading ? (
+              {errorMessage ? (
+                <Alert variant="destructive" data-testid="search-error">
+                  <AlertTitle>Se produjo un error</AlertTitle>
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              ) : showLoading ? (
                 <LoadingState />
               ) : results.length > 0 ? (
                 <>
